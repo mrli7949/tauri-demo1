@@ -24,7 +24,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "com.example.tauri1-demo",
       "longDescription": "",
       "resources": [],
       "targets": "all"
