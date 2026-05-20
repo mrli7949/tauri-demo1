@@ -2,12 +2,8 @@
   "build": {
     "beforeDevCommand": "",
     "beforeBuildCommand": "",
-    "devPath": "../home",
+    "devPath": "http://localhost:5173",
     "distDir": "../home"
-  },
-  "package": {
-    "productName": "tauri1-demo",
-    "version": "0.1.0"
   },
   "tauri": {
     "allowlist": {
@@ -30,21 +26,8 @@
       ],
       "identifier": "com.tauri.dev",
       "longDescription": "",
-      "macOS": {
-        "entitlements": null,
-        "exceptionDomain": "",
-        "frameworks": [],
-        "providerShortName": null,
-        "signingIdentity": null
-      },
       "resources": [],
-      "shortDescription": "",
-      "targets": "all",
-      "windows": {
-        "certificateThumbprint": null,
-        "digestAlgorithm": "sha256",
-        "timestampUrl": ""
-      }
+      "targets": "all"
     },
     "security": {
       "csp": null
@@ -54,11 +37,11 @@
     },
     "windows": [
       {
-        "fullscreen": false,
+        "title": "tauri1-demo",
+        "width": 1280,
         "height": 800,
         "resizable": false,
-        "title": "tauri1-demo",
-        "width": 1280
+        "fullscreen": false
       }
     ]
   }
