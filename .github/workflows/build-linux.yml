@@ -1,4 +1,4 @@
-name: Build Linux (Tauri v1 - x86 + ARM)
+name: Build Linux (Tauri v1 - ARM64 only)
 
 on:
   push:
@@ -8,15 +8,7 @@ on:
     branches: [main, master]
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            arch: x86_64
-          - target: aarch64-unknown-linux-gnu
-            arch: arm64
-
+  build-arm:
     runs-on: ubuntu-20.04
 
     env:
@@ -32,10 +24,10 @@ jobs:
           node-version: 18
           cache: npm
 
-      - name: Install Rust toolchain
+      - name: Install Rust toolchain (ARM target)
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: aarch64-unknown-linux-gnu
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -68,20 +60,17 @@ jobs:
       - name: Install Tauri CLI
         run: cargo install tauri-cli --locked
 
-      # ARM 交叉编译需要额外环境变量
-      - name: Build Tauri (x86 / ARM)
+      - name: Build Tauri (ARM64 only)
         run: |
-          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
-            export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
-            export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
-            export AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar
-          fi
+          export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
+          export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
+          export AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar
 
-          cargo tauri build --target ${{ matrix.target }}
+          cargo tauri build --target aarch64-unknown-linux-gnu
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tauri-linux-${{ matrix.arch }}
+          name: tauri-linux-arm64
           path: |
-            src-tauri/target/${{ matrix.target }}/release/bundle/
+            src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/
