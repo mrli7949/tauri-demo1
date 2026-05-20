@@ -27,9 +27,6 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install npm dependencies
-        run: npm install
-
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
@@ -83,9 +80,6 @@ jobs:
         with:
           node-version: 20
           cache: npm
-
-      - name: Install npm dependencies
-        run: npm install
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
