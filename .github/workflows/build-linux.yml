@@ -1,4 +1,4 @@
-name: Build Linux Packages
+name: Build Linux Packages (Tauri1 Stable)
 
 on:
   push:
@@ -13,10 +13,11 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
-  build-linux-x86_64:
-    name: Build Linux x86_64
+  build-x86_64:
+    name: Build Linux x86_64 (Ubuntu 20.04)
     runs-on: ubuntu-20.04
     timeout-minutes: 60
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,50 +28,42 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install Rust stable
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache Rust dependencies
+      - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          shared-key: linux-x86_64
 
-      - name: Install Linux system dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
+            libwebkit2gtk-4.0-dev \
             libappindicator3-dev \
             librsvg2-dev \
             patchelf
 
-      - name: Install Tauri CLI
-        run: cargo install tauri-cli --locked
+      - name: Install frontend deps
+        run: npm ci
 
-      - name: Build Tauri App
-        run: cargo tauri build --target x86_64-unknown-linux-gnu
-
-      - name: Collect artifacts
-        run: |
-          mkdir -p artifacts
-          cp src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb artifacts/ 2>/dev/null || true
-          cp src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm artifacts/ 2>/dev/null || true
-          cp src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage artifacts/ 2>/dev/null || true
-          ls -la artifacts/
+      - name: Build Tauri (x86_64)
+        run: npm run tauri build
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-x86_64-packages
-          path: artifacts/*
-          if-no-files-found: error
+          name: linux-x86_64
+          path: src-tauri/target/release/bundle/**
 
-  build-linux-arm64:
-    name: Build Linux ARM64
-    runs-on: ubuntu-20.04-arm
+
+  build-arm64:
+    name: Build Linux ARM64 (Cross Compile)
+    runs-on: ubuntu-20.04
     timeout-minutes: 60
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,77 +74,75 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install Rust stable
+      - name: Install Rust + target
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-unknown-linux-gnu
 
-      - name: Cache Rust dependencies
+      - name: Install cross toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          shared-key: linux-arm64
+          shared-key: arm64
 
-      - name: Install Linux system dependencies
+      - name: Install system dependencies
         run: |
-          sudo apt-get update
           sudo apt-get install -y \
             libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
+            libwebkit2gtk-4.0-dev \
             libappindicator3-dev \
             librsvg2-dev \
             patchelf
 
-      - name: Install Tauri CLI
-        run: cargo install tauri-cli --locked
+      - name: Install frontend deps
+        run: npm ci
 
-      - name: Build Tauri App (native ARM64)
-        run: cargo tauri build --target aarch64-unknown-linux-gnu
-
-      - name: Collect artifacts
+      - name: Build ARM64 (cross compile)
+        env:
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
         run: |
-          mkdir -p artifacts
-          cp src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/*.deb artifacts/ 2>/dev/null || true
-          cp src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm/*.rpm artifacts/ 2>/dev/null || true
-          cp src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/*.AppImage artifacts/ 2>/dev/null || true
-          ls -la artifacts/
+          npm run tauri build -- --target aarch64-unknown-linux-gnu
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-arm64-packages
-          path: artifacts/*
-          if-no-files-found: error
+          name: linux-arm64
+          path: src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/**
+
 
   release:
-    name: Create GitHub Release
-    needs: [build-linux-x86_64, build-linux-arm64]
+    name: Create Release
+    needs: [build-x86_64, build-arm64]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+
     permissions:
       contents: write
+
     steps:
       - name: Download x86_64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: linux-x86_64-packages
+          name: linux-x86_64
           path: artifacts/x86_64
 
       - name: Download ARM64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: linux-arm64-packages
+          name: linux-arm64
           path: artifacts/arm64
 
-      - name: List downloaded artifacts
+      - name: Show files
         run: find artifacts -type f | sort
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/*
-          draft: false
-          prerelease: false
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
